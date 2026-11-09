@@ -13,11 +13,15 @@ const Field = ({ f, value, onChange, refs }) => {
     const options = f.ref ? (refs[f.ref] || []).map((r) => ({ value: r.id, label: r.name })) : f.options;
     return <select {...common}><option value="">-- Pilih --</option>{options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select>;
   }
-  return <input type={f.type || 'text'} {...common} />;
+  return <input type={f.type || 'text'} min={f.min} max={f.max} step={f.step} {...common} />;
 };
 
 export default function ResourceForm({ fields, initial, onSubmit, onCancel }) {
-  const [form, setForm] = useState(initial || {});
+  const [form, setForm] = useState(() => {
+    const base = { ...(initial || {}) };
+    if (!base.id) fields.forEach((f) => { if (f.default !== undefined && base[f.key] === undefined) base[f.key] = f.default; });
+    return base;
+  });
   const [refs, setRefs] = useState({});
   const [saving, setSaving] = useState(false);
   useEffect(() => {

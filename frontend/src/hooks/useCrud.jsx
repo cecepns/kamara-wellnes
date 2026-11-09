@@ -25,8 +25,9 @@ export default function useCrud(endpoint) {
   useEffect(() => { load(); }, [load]);
 
   const save = async (form, id) => {
-    await request(id ? 'put' : 'post', id ? endpoint.DETAIL(id) : endpoint.LIST, { data: form, success: id ? 'Data diperbarui' : 'Data ditambahkan' });
+    const res = await request(id ? 'put' : 'post', id ? endpoint.DETAIL(id) : endpoint.LIST, { data: form, success: id ? 'Data diperbarui' : 'Data ditambahkan' });
     load();
+    return res;
   };
   const remove = (id) => toast((t) => (
     <span className="flex items-center gap-3 text-sm">Hapus data ini?

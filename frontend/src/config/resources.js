@@ -1,4 +1,4 @@
-import { Users, Sparkles, UserCog, Tag, Package, CalendarCheck, ReceiptText, Clock, ClipboardList } from 'lucide-react';
+import { Users, Sparkles, UserCog, Tag, Package, CalendarCheck, ReceiptText, Clock, ClipboardList, Megaphone } from 'lucide-react';
 import { API_ENDPOINTS as E } from '@/utils/endpoints';
 import { rupiah } from '@/utils/request';
 
@@ -22,11 +22,15 @@ export const RESOURCES = {
     { key: 'customer_id', label: 'Pelanggan', type: 'customer-select', table: 'customer_name' },
     sel('service_id', 'Layanan', 'services', { required: true, table: 'service_name' }),
     sel('therapist_id', 'Terapis', 'therapists', { table: 'therapist_name' }),
+    { key: 'admin_id', label: 'Admin (1%)', type: 'hidden', table: 'admin_name' },
+    { key: 'marketing_id', label: 'Marketing', type: 'hidden', table: 'marketing_name' },
     { key: 'price', label: 'Harga (kosong = harga layanan)', type: 'number' },
     { key: 'discount', label: 'Diskon / promo (Rp)', type: 'number' },
     { key: 'total', label: 'Total', type: 'hidden', table: true, render: money },
-    { key: 'commission', label: 'Komisi', type: 'hidden', table: true, render: money },
-    { key: 'payment_method', label: 'Pembayaran', type: 'select', options: opt(['Tunai', 'Transfer', 'QRIS']) }] },
+    { key: 'commission', label: 'Komisi Terapis', type: 'hidden', table: true, render: money },
+    { key: 'admin_commission', label: 'Komisi Admin', type: 'hidden', table: true, render: money },
+    { key: 'marketing_commission', label: 'Komisi Marketing', type: 'hidden', table: true, render: (v, r) => (r.marketing_id ? `${money(v)} (${r.marketing_percent || 0}%)` : '-') },
+    { key: 'payment_method', label: 'Pembayaran', type: 'select', options: opt(['Tunai', 'Transfer', 'QRIS']), table: true }] },
   attendance: { title: 'Absensi', group: 'Operasional', icon: Clock, endpoint: E.ATTENDANCE, fields: [
     sel('therapist_id', 'Terapis', 'therapists', { required: true, table: 'therapist_name' }),
     { key: 'att_date', label: 'Tanggal', type: 'date', required: true, table: true },
@@ -56,6 +60,12 @@ export const RESOURCES = {
   therapists: { title: 'Terapis', group: 'Data master', icon: UserCog, endpoint: E.THERAPISTS, fields: [
     { key: 'name', label: 'Nama', required: true, table: true }, { key: 'phone', label: 'No. HP', table: true },
     { key: 'base_salary', label: 'Gaji pokok', type: 'number', table: true, render: money }, { key: 'active', label: 'Status', type: 'select', options: yn }] },
+  marketers: { title: 'Team Marketing', group: 'Data master', icon: Megaphone, endpoint: E.MARKETERS, fields: [
+    { key: 'name', label: 'Nama', required: true, table: true },
+    { key: 'phone', label: 'No. HP', table: true },
+    { key: 'commission_percent', label: 'Komisi default (10–15%)', type: 'number', min: 10, max: 15, step: 0.5, default: 10, required: true, table: true, render: (v) => `${v ?? 10}%` },
+    { key: 'base_salary', label: 'Gaji pokok', type: 'number', default: 0, table: true, render: money },
+    { key: 'active', label: 'Status', type: 'select', options: yn, default: 1 }] },
   promos: { title: 'Promo', group: 'Data master', icon: Tag, endpoint: E.PROMOS, fields: [
     { key: 'name', label: 'Nama promo', required: true, table: true },
     { key: 'discount_type', label: 'Jenis', type: 'select', options: opt(['persen', 'nominal']), table: true },

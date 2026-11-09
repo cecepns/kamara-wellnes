@@ -1,5 +1,18 @@
 <!doctype html>
 <html lang="id"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" href="/logo.png" /><title>Kamara Wellness</title>
+<meta name="theme-color" content="#ae9142" />
+<link rel="icon" href="/logo.png" /><link rel="apple-touch-icon" href="/pwa-192x192.png" /><title>Kamara Wellness</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script>
+window.__pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  window.__pwaPrompt = e;
+  window.dispatchEvent(new Event('pwa-prompt-ready'));
+});
+window.addEventListener('appinstalled', function () {
+  window.__pwaPrompt = null;
+  window.dispatchEvent(new Event('pwa-prompt-ready'));
+});
+</script>
 </head><body class="bg-[#f7f5f0] text-ink-900 font-sans"><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
