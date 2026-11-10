@@ -3,6 +3,7 @@ export const API_ENDPOINTS = {
   AUTH: { LOGIN: '/auth/login', REGISTER: '/auth/register', PROFILE: '/auth/profile', PASSWORD: '/auth/password' },
   OPTIONS: { STAFF: '/options/staff' },
   REPORTS: { SUMMARY: '/reports/summary' },
+  EMPLOYEES: { SALARY: '/employees/salary' },
   USERS: { ...crud('/users'), PASSWORD: (id) => `/users/${id}/password` },
   CUSTOMERS: crud('/customers'),
   SERVICES: crud('/services'),

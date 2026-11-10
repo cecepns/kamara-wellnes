@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Users } from 'lucide-react';
 import { request, rupiah } from '@/utils/request';
 import { API_ENDPOINTS } from '@/utils/endpoints';
 
@@ -12,9 +14,15 @@ export default function Reports() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Laporan & Gaji</h1>
-        <input type="month" className="input !w-auto" value={month} onChange={(e) => setMonth(e.target.value)} />
+        <div className="flex items-center gap-2">
+          <Link to="/rekap-karyawan" className="btn-ghost text-xs">
+            <Users size={15} />
+            Rekap Karyawan
+          </Link>
+          <input type="month" className="input !w-auto" value={month} onChange={(e) => setMonth(e.target.value)} />
+        </div>
       </div>
 
       {!d ? <div className="h-40 animate-pulse rounded-2xl bg-stone-200" /> : (
@@ -36,15 +44,16 @@ export default function Reports() {
           <section className="space-y-2">
             <h2 className="text-base font-bold">Gaji & Komisi Terapis</h2>
             <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-              <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="bg-stone-50"><tr>{['Terapis', 'Gaji pokok', 'Komisi', 'Total gaji'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
+              <table className="w-full min-w-[540px] text-left text-sm">
+                <thead className="bg-stone-50"><tr>{['Terapis', 'Transaksi', 'Gaji pokok', 'Komisi', 'Total gaji'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
                 <tbody>
                   {(d.payroll || []).map((p) => (
                     <tr key={p.id} className="border-t border-stone-100">
                       <td className="px-4 py-3">{p.name}</td>
+                      <td className="px-4 py-3">{p.trx ?? 0}</td>
                       <td className="px-4 py-3">{rupiah(p.base_salary)}</td>
                       <td className="px-4 py-3">{rupiah(p.commission)}</td>
-                      <td className="px-4 py-3 font-bold">{rupiah(p.total_salary)}</td>
+                      <td className="px-4 py-3 font-bold text-gold-700">{rupiah(p.total_salary)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -53,18 +62,19 @@ export default function Reports() {
           </section>
 
           <section className="space-y-2">
-            <h2 className="text-base font-bold">Komisi Admin (1%)</h2>
+            <h2 className="text-base font-bold">Gaji & Komisi Admin (1%)</h2>
             <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-              <table className="w-full min-w-[520px] text-left text-sm">
-                <thead className="bg-stone-50"><tr>{['Nama', 'Username', 'Role', 'Transaksi', 'Komisi 1%'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
+              <table className="w-full min-w-[600px] text-left text-sm">
+                <thead className="bg-stone-50"><tr>{['Nama', 'Role', 'Transaksi', 'Gaji pokok', 'Komisi 1%', 'Total gaji'].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
                 <tbody>
                   {(d.adminPayroll || []).map((a) => (
                     <tr key={a.id} className="border-t border-stone-100">
                       <td className="px-4 py-3">{a.name}</td>
-                      <td className="px-4 py-3 text-stone-500">{a.username}</td>
                       <td className="px-4 py-3 capitalize">{a.role}</td>
                       <td className="px-4 py-3">{a.trx}</td>
-                      <td className="px-4 py-3 font-bold text-gold-700">{rupiah(a.commission)}</td>
+                      <td className="px-4 py-3">{rupiah(a.base_salary)}</td>
+                      <td className="px-4 py-3">{rupiah(a.commission)}</td>
+                      <td className="px-4 py-3 font-bold text-gold-700">{rupiah(a.total_salary)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -7,7 +7,7 @@ import DataTable from '@/components/DataTable';
 import Pagination from '@/components/Pagination';
 import Modal from '@/components/Modal';
 import { API_ENDPOINTS as E } from '@/utils/endpoints';
-import { request } from '@/utils/request';
+import { request, rupiah } from '@/utils/request';
 
 export default function Users() {
   const currentUser = (() => {
@@ -31,6 +31,8 @@ export default function Users() {
         </span>
       ),
     },
+    { key: 'phone', label: 'No. HP' },
+    { key: 'base_salary', label: 'Gaji pokok', render: (v) => rupiah(v) },
     { key: 'created_at', label: 'Dibuat', render: (v) => (v ? String(v).slice(0, 10) : '-') },
   ];
 
@@ -38,15 +40,15 @@ export default function Users() {
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Manajemen User</h1>
-          <p className="text-sm text-stone-500">Kelola akun admin & kasir serta ubah password</p>
+          <h1 className="text-2xl font-bold">Manajemen User & Gaji Admin</h1>
+          <p className="text-sm text-stone-500">Kelola akun admin & kasir, atur gaji pokok, serta ubah password</p>
         </div>
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-3 text-stone-400" />
             <input className="input !pl-9" placeholder="Cari nama atau username..." value={crud.search} onChange={(e) => crud.setSearch(e.target.value)} />
           </div>
-          <button className="btn-primary" onClick={() => setModal({ role: 'kasir' })}><Plus size={16} />Tambah User</button>
+          <button className="btn-primary" onClick={() => setModal({ role: 'kasir', base_salary: 0 })}><Plus size={16} />Tambah User</button>
         </div>
       </div>
 
@@ -104,6 +106,8 @@ function UserForm({ initial, isSelf, onSubmit, onCancel }) {
     name: initial?.name || '',
     username: initial?.username || '',
     role: initial?.role || 'kasir',
+    phone: initial?.phone || '',
+    base_salary: initial?.base_salary ?? 0,
     password: '',
   });
   const [saving, setSaving] = useState(false);
@@ -115,7 +119,13 @@ function UserForm({ initial, isSelf, onSubmit, onCancel }) {
     if (form.password && form.password.length < 6) return toast.error('Password minimal 6 karakter');
     setSaving(true);
     try {
-      const payload = { name: form.name.trim(), username: form.username.trim(), role: form.role };
+      const payload = {
+        name: form.name.trim(),
+        username: form.username.trim(),
+        role: form.role,
+        phone: form.phone.trim(),
+        base_salary: Math.max(Number(form.base_salary) || 0, 0),
+      };
       if (form.password) payload.password = form.password;
       await onSubmit(payload);
     } catch { /* toast sudah muncul */ } finally { setSaving(false); }
@@ -123,20 +133,32 @@ function UserForm({ initial, isSelf, onSubmit, onCancel }) {
 
   return (
     <form onSubmit={submit} className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Nama *</span>
+          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Username *</span>
+          <input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+        </label>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Role</span>
+          <select className="input" disabled={isSelf} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <option value="kasir">Kasir</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">No. HP</span>
+          <input className="input" placeholder="08..." value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        </label>
+      </div>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Nama *</span>
-        <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium">Username *</span>
-        <input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1 block font-medium">Role</span>
-        <select className="input" disabled={isSelf} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-          <option value="kasir">Kasir</option>
-          <option value="admin">Admin</option>
-        </select>
+        <span className="mb-1 block font-medium">Gaji Pokok (Rp)</span>
+        <input type="number" min="0" className="input" value={form.base_salary} onChange={(e) => setForm({ ...form, base_salary: e.target.value })} />
       </label>
       <label className="block text-sm">
         <span className="mb-1 block font-medium">{isNew ? 'Password *' : 'Password baru (kosongkan jika tidak diubah)'}</span>
@@ -184,4 +206,3 @@ function ResetPasswordForm({ user, onCancel, onDone }) {
     </form>
   );
 }
-

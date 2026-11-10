@@ -3,6 +3,7 @@ import Layout from '@/components/Layout';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
 import Reports from '@/pages/Reports';
+import EmployeeRecap from '@/pages/EmployeeRecap';
 import Users from '@/pages/Users';
 import ResourcePage from '@/pages/ResourcePage';
 
@@ -14,6 +15,7 @@ export default function App() {
       <Route element={<Private><Layout /></Private>}>
         <Route index element={<Dashboard />} />
         <Route path="laporan" element={<Reports />} />
+        <Route path="rekap-karyawan" element={<EmployeeRecap />} />
         <Route path="users" element={<Users />} />
         <Route path=":name" element={<ResourcePage />} />
       </Route>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { LayoutDashboard, Menu, LogOut, X, BarChart3, ShieldCheck, KeyRound, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Menu, LogOut, X, BarChart3, ShieldCheck, KeyRound, Loader2, Users } from 'lucide-react';
 import { RESOURCES, GROUPS } from '@/config/resources';
 import { API_ENDPOINTS as E } from '@/utils/endpoints';
 import { request } from '@/utils/request';
@@ -50,6 +50,7 @@ export default function Layout() {
             </div>
           ))}
           <NavLink to="/laporan" className={link}><BarChart3 size={18} />Laporan & Gaji</NavLink>
+          <NavLink to="/rekap-karyawan" className={link}><Users size={18} />Rekap Karyawan</NavLink>
           {user?.role === 'admin' && (
             <NavLink to="/users" className={link}><ShieldCheck size={18} />Manajemen User</NavLink>
           )}

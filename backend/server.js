@@ -130,20 +130,23 @@ const R = {
 
 const clean = (v) => (typeof v === 'string' ? (v.trim() === '' ? null : v.trim()) : v);
 
-function mktPre(b) {
-  const pct =
-    b.commission_percent !== undefined &&
-    b.commission_percent !== null &&
-    b.commission_percent !== ''
-      ? Number(b.commission_percent)
-      : 10;
+function mktPre(b, isNew = true) {
+  if (isNew || b.commission_percent !== undefined) {
+    const pct =
+      b.commission_percent !== undefined &&
+      b.commission_percent !== null &&
+      b.commission_percent !== ''
+        ? Number(b.commission_percent)
+        : 10;
 
-  if (Number.isNaN(pct) || pct < 10 || pct > 15) {
-    throw new Error('Komisi team marketing harus antara 10% - 15%');
+    if (Number.isNaN(pct) || pct < 10 || pct > 15) {
+      throw new Error('Komisi team marketing harus antara 10% - 15%');
+    }
+
+    b.commission_percent = pct;
   }
 
-  b.commission_percent = pct;
-  if (b.base_salary === undefined || b.base_salary === null || b.base_salary === '') {
+  if (isNew && (b.base_salary === undefined || b.base_salary === null || b.base_salary === '')) {
     b.base_salary = 0;
   }
 }
@@ -290,7 +293,7 @@ app.get(
 
     const [[{ total }]] = await pool.query(`SELECT COUNT(*) total FROM users ${where}`, params);
     const [rows] = await pool.query(
-      `SELECT id, name, username, role, created_at FROM users ${where} ORDER BY id DESC LIMIT ? OFFSET ?`,
+      `SELECT id, name, username, role, phone, COALESCE(base_salary, 0) base_salary, created_at FROM users ${where} ORDER BY id DESC LIMIT ? OFFSET ?`,
       [...params, limit, (page - 1) * limit]
     );
 
@@ -311,6 +314,8 @@ app.post(
     const username = clean(req.body.username);
     const password = req.body.password || '';
     const role = req.body.role === 'kasir' ? 'kasir' : 'admin';
+    const phone = clean(req.body.phone);
+    const baseSalary = Math.max(Number(req.body.base_salary) || 0, 0);
 
     if (!name || !username || !password) {
       return fail(res, 400, 'Nama, username, dan password wajib diisi');
@@ -323,8 +328,8 @@ app.post(
     if (dup) return fail(res, 409, 'Username sudah digunakan');
 
     const [result] = await pool.query(
-      'INSERT INTO users(name, username, password, role) VALUES(?, ?, ?, ?)',
-      [name, username, await bcrypt.hash(password, 10), role]
+      'INSERT INTO users(name, username, password, role, phone, base_salary) VALUES(?, ?, ?, ?, ?, ?)',
+      [name, username, await bcrypt.hash(password, 10), role, phone, baseSalary]
     );
     ok(res, { id: result.insertId });
   })
@@ -338,6 +343,8 @@ app.put(
     const name = clean(req.body.name);
     const username = clean(req.body.username);
     const role = req.body.role === 'kasir' ? 'kasir' : 'admin';
+    const phone = clean(req.body.phone);
+    const baseSalary = Math.max(Number(req.body.base_salary) || 0, 0);
 
     if (!name || !username) {
       return fail(res, 400, 'Nama dan username wajib diisi');
@@ -356,20 +363,15 @@ app.put(
       if (String(req.body.password).length < 6) {
         return fail(res, 400, 'Password minimal 6 karakter');
       }
-      await pool.query('UPDATE users SET name=?, username=?, role=?, password=? WHERE id=?', [
-        name,
-        username,
-        role,
-        await bcrypt.hash(req.body.password, 10),
-        id,
-      ]);
+      await pool.query(
+        'UPDATE users SET name=?, username=?, role=?, phone=?, base_salary=?, password=? WHERE id=?',
+        [name, username, role, phone, baseSalary, await bcrypt.hash(req.body.password, 10), id]
+      );
     } else {
-      await pool.query('UPDATE users SET name=?, username=?, role=? WHERE id=?', [
-        name,
-        username,
-        role,
-        id,
-      ]);
+      await pool.query(
+        'UPDATE users SET name=?, username=?, role=?, phone=?, base_salary=? WHERE id=?',
+        [name, username, role, phone, baseSalary, id]
+      );
     }
 
     ok(res, { id });
@@ -406,6 +408,20 @@ app.delete(
   })
 );
 
+app.put(
+  '/api/employees/salary',
+  requireAdmin,
+  wrap(async (req, res) => {
+    const { division, id } = req.body;
+    const baseSalary = Math.max(Number(req.body.base_salary) || 0, 0);
+    const tableMap = { Terapis: 'therapists', Admin: 'users', Marketing: 'marketers' };
+    const table = tableMap[division];
+    if (!table || !id) return fail(res, 400, 'Divisi dan ID karyawan wajib diisi');
+    await pool.query(`UPDATE ${table} SET base_salary=? WHERE id=?`, [baseSalary, +id]);
+    ok(res, { id: +id, division, base_salary: baseSalary });
+  })
+);
+
 // ---- Reports & dashboard
 app.get(
   '/api/reports/summary',
@@ -430,14 +446,18 @@ app.get(
       `SELECT
         th.id,
         th.name,
-        th.base_salary,
+        th.phone,
+        th.active,
+        COALESCE(th.base_salary, 0) base_salary,
+        COUNT(t.id) trx,
         COALESCE(SUM(t.commission), 0) commission,
-        th.base_salary + COALESCE(SUM(t.commission), 0) total_salary
+        COALESCE(th.base_salary, 0) + COALESCE(SUM(t.commission), 0) total_salary
       FROM therapists th
       LEFT JOIN transactions t
         ON t.therapist_id = th.id
         AND DATE_FORMAT(t.trx_date, '%Y-%m') = ?
-      GROUP BY th.id, th.name, th.base_salary`,
+      GROUP BY th.id, th.name, th.phone, th.active, th.base_salary
+      ORDER BY total_salary DESC, th.name ASC`,
       [month]
     );
 
@@ -447,14 +467,17 @@ app.get(
         u.name,
         u.username,
         u.role,
+        u.phone,
+        COALESCE(u.base_salary, 0) base_salary,
         COUNT(t.id) trx,
-        COALESCE(SUM(t.admin_commission), 0) commission
+        COALESCE(SUM(t.admin_commission), 0) commission,
+        COALESCE(u.base_salary, 0) + COALESCE(SUM(t.admin_commission), 0) total_salary
       FROM users u
       LEFT JOIN transactions t
         ON t.admin_id = u.id
         AND DATE_FORMAT(t.trx_date, '%Y-%m') = ?
-      GROUP BY u.id, u.name, u.username, u.role
-      ORDER BY commission DESC, u.name ASC`,
+      GROUP BY u.id, u.name, u.username, u.role, u.phone, u.base_salary
+      ORDER BY total_salary DESC, u.name ASC`,
       [month]
     );
 
@@ -462,19 +485,64 @@ app.get(
       `SELECT
         m.id,
         m.name,
+        m.phone,
+        m.active,
         m.commission_percent,
-        m.base_salary,
+        COALESCE(m.base_salary, 0) base_salary,
         COUNT(t.id) trx,
         COALESCE(SUM(t.marketing_commission), 0) commission,
-        m.base_salary + COALESCE(SUM(t.marketing_commission), 0) total_salary
+        COALESCE(m.base_salary, 0) + COALESCE(SUM(t.marketing_commission), 0) total_salary
       FROM marketers m
       LEFT JOIN transactions t
         ON t.marketing_id = m.id
         AND DATE_FORMAT(t.trx_date, '%Y-%m') = ?
-      GROUP BY m.id, m.name, m.commission_percent, m.base_salary
+      GROUP BY m.id, m.name, m.phone, m.active, m.commission_percent, m.base_salary
       ORDER BY total_salary DESC, m.name ASC`,
       [month]
     );
+
+    const employeeRecap = [
+      ...payroll.map((p) => ({
+        key: `therapist-${p.id}`,
+        id: p.id,
+        name: p.name,
+        phone: p.phone,
+        division: 'Terapis',
+        roleLabel: 'Terapis',
+        trx: Number(p.trx) || 0,
+        base_salary: Number(p.base_salary) || 0,
+        commission: Number(p.commission) || 0,
+        total_salary: Number(p.total_salary) || 0,
+      })),
+      ...adminPayroll.map((a) => ({
+        key: `admin-${a.id}`,
+        id: a.id,
+        name: a.name,
+        phone: a.phone,
+        division: 'Admin',
+        roleLabel: a.role === 'kasir' ? 'Kasir (1%)' : 'Admin (1%)',
+        trx: Number(a.trx) || 0,
+        base_salary: Number(a.base_salary) || 0,
+        commission: Number(a.commission) || 0,
+        total_salary: Number(a.total_salary) || 0,
+      })),
+      ...marketingPayroll.map((m) => ({
+        key: `marketing-${m.id}`,
+        id: m.id,
+        name: m.name,
+        phone: m.phone,
+        division: 'Marketing',
+        roleLabel: `Marketing (${m.commission_percent}%)`,
+        trx: Number(m.trx) || 0,
+        base_salary: Number(m.base_salary) || 0,
+        commission: Number(m.commission) || 0,
+        total_salary: Number(m.total_salary) || 0,
+      })),
+    ];
+
+    const totalBaseSalary = employeeRecap.reduce((s, e) => s + e.base_salary, 0);
+    const totalCommission = employeeRecap.reduce((s, e) => s + e.commission, 0);
+    const totalPayroll = employeeRecap.reduce((s, e) => s + e.total_salary, 0);
 
     const [daily] = await pool.query(
       `SELECT
@@ -551,9 +619,13 @@ app.get(
       month,
       ...tot,
       customerCount,
+      totalBaseSalary,
+      totalCommission,
+      totalPayroll,
       payroll,
       adminPayroll,
       marketingPayroll,
+      employeeRecap,
       daily,
       byService,
       byPayment,
@@ -635,7 +707,7 @@ Object.entries(R).forEach(([name, c]) => {
 
       if (c.pre === 'mkt') {
         try {
-          mktPre(b);
+          mktPre(b, isNew);
         } catch (err) {
           return fail(res, 400, err.message);
         }
@@ -713,6 +785,8 @@ async function ensureSchema() {
   );
 
   await addCol('users', 'role', "ENUM('admin','kasir') NOT NULL DEFAULT 'admin'");
+  await addCol('users', 'phone', 'VARCHAR(30) NULL');
+  await addCol('users', 'base_salary', 'DECIMAL(12,0) DEFAULT 0');
   await addCol('transactions', 'admin_id', 'INT NULL');
   await addCol('transactions', 'admin_commission', 'DECIMAL(12,0) DEFAULT 0');
   await addCol('transactions', 'marketing_id', 'INT NULL');
