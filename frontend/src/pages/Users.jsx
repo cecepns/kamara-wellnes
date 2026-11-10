@@ -52,6 +52,10 @@ export default function Users() {
         </div>
       </div>
 
+      <div className="mb-4 rounded-xl border border-gold-500/30 bg-gold-50/70 px-4 py-2.5 text-xs text-stone-700">
+        <b>Gaji Pokok Admin &amp; Kasir:</b> Atur gaji pokok bulanan pada kolom <b>Gaji Pokok (Rp)</b> di bawah ini (di luar <b>komisi 1%</b> per transaksi). Totalnya otomatis dijumlahkan di menu <b>Laporan &amp; Gaji</b> serta <b>Rekap Karyawan</b>.
+      </div>
+
       <div className="rounded-2xl border border-stone-200 bg-white">
         <DataTable
           columns={columns}
@@ -157,7 +161,7 @@ function UserForm({ initial, isSelf, onSubmit, onCancel }) {
         </label>
       </div>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium">Gaji Pokok (Rp)</span>
+        <span className="mb-1 block font-medium">Gaji Pokok (Rp) <span className="font-normal text-stone-400">· di luar komisi 1%</span></span>
         <input type="number" min="0" className="input" value={form.base_salary} onChange={(e) => setForm({ ...form, base_salary: e.target.value })} />
       </label>
       <label className="block text-sm">

@@ -52,7 +52,7 @@ export default function Layout() {
           <NavLink to="/laporan" className={link}><BarChart3 size={18} />Laporan & Gaji</NavLink>
           <NavLink to="/rekap-karyawan" className={link}><Users size={18} />Rekap Karyawan</NavLink>
           {user?.role === 'admin' && (
-            <NavLink to="/users" className={link}><ShieldCheck size={18} />Manajemen User</NavLink>
+            <NavLink to="/users" className={link}><ShieldCheck size={18} />User &amp; Gaji Admin</NavLink>
           )}
         </nav>
 

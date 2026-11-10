@@ -289,7 +289,7 @@ export default function EmployeeRecap() {
                         <td className="px-4 py-3 text-right">
                           <button
                             type="button"
-                            className="inline-flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-100"
+                            className="inline-flex items-center gap-1 rounded-lg border border-gold-500/40 bg-gold-50/80 px-2.5 py-1 text-xs font-semibold text-gold-700 hover:bg-gold-100"
                             onClick={() => setSalaryModal(r)}
                           >
                             <Pencil size={13} />
